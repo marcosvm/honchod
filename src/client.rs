@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("response={:?}", response);
 
     let request = tonic::Request::new(DecryptRequest {
-        message: "encrypt this please".into(),
+        message: "decrypt this please".into(),
     });
 
     let response = client.decrypt(request).await?;
