@@ -1,4 +1,6 @@
+use tonic::transport::Identity;
 use tonic::transport::Server;
+use tonic::transport::ServerTlsConfig;
 use tonic::Request;
 use tonic::Response;
 use tonic::Status;
@@ -53,11 +55,23 @@ impl Encryption for HostEncryption {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "[::1]:33441".parse()?;
-    let encryption = HostEncryption::default();
+    let addr = std::env::var("RANCHOD_BIND_ADDRESS")
+        .unwrap_or("[::]:33441".to_string())
+        .parse()?;
 
+    let cert = std::fs::read_to_string(
+        std::env::var("HONCHOD_SERVER_CERTIFICATE").unwrap_or("./etc/server.pem".to_string()),
+    )?;
+
+    let key = std::fs::read_to_string(
+        std::env::var("HONCHOD_SERVER_CERTIFICATE_KEY")
+            .unwrap_or("./etc/server-key.pem".to_string()),
+    )?;
+
+    let encryption_service = HostEncryption::default();
     Server::builder()
-        .add_service(EncryptionServer::new(encryption))
+        .tls_config(ServerTlsConfig::new().identity(Identity::from_pem(&cert, &key)))?
+        .add_service(EncryptionServer::new(encryption_service))
         .serve(addr)
         .await?;
 
